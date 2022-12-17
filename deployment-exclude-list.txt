@@ -1,0 +1,12 @@
+auth.json
+bitbucket-pipelines.yml
+deployment-exclude-list.txt
+stubs
+node_modules
+storage/*.key
+storage/framework/cache/*
+storage/framework/session/*
+storage/framework/views/*
+storage/logs/*
+storage/app/*
+.env

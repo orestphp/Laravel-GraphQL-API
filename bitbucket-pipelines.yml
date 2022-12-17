@@ -1,0 +1,136 @@
+# Template PHP Build
+
+# This template allows you to validate your PHP application.
+# The workflow allows running tests and code linting on the default branch.
+
+image: pyguerder/bitbucket-pipelines-php81
+
+pipelines:
+  branches:
+    master:
+      - step:
+          name: Build artifact
+          script:
+            - echo "Deploying to production environment"
+            - composer install --no-interaction --no-progress --prefer-dist --no-dev --ignore-platform-req=ext-mongodb
+            - php artisan vendor:publish --tag=laravel-assets --ansi
+          #            - php artisan horizon:publish
+          caches:
+            - composer
+            - node
+          artifacts:
+            - 'vendor/**'
+            - 'public/**'
+      - parallel:
+          - step:
+              name: Deploy to PRODUCTION
+              trigger: manual
+              deployment: production
+              script:
+                - pipe: atlassian/rsync-deploy:0.6.0
+                  variables:
+                    USER: $WD_USER
+                    SERVER: $WD_SERVER
+                    REMOTE_PATH: $WD_REMOTE_PATH
+                    LOCAL_PATH: '$BITBUCKET_CLONE_DIR/*'
+                    SSH_KEY: $WD_SSH_KEY
+                    DELETE_FLAG: 'true'
+                    EXTRA_ARGS: '-zrSlh --update --stats --exclude-from=deployment-exclude-list.txt' # Optional.
+          - step:
+              name: Deploy to STAGING
+              trigger: manual
+              deployment: staging
+              script:
+                - pipe: atlassian/rsync-deploy:0.6.0
+                  variables:
+                    USER: $WD_USER
+                    SERVER: $WD_SERVER
+                    REMOTE_PATH: $WD_REMOTE_PATH
+                    LOCAL_PATH: '$BITBUCKET_CLONE_DIR/*'
+                    SSH_KEY: $WD_SSH_KEY
+                    DELETE_FLAG: 'true'
+                    EXTRA_ARGS: '-zrSlh --update --stats --exclude-from=deployment-exclude-list.txt' # Optional.
+    feature/*:
+      - step:
+          name: Build artifact
+          script:
+            - echo "Deploying to staging environment"
+            - composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-mongodb
+            - php artisan vendor:publish --tag=laravel-assets --ansi
+          #            - php artisan horizon:publish
+          caches:
+            - composer
+            - node
+          artifacts:
+            - 'vendor/**'
+            - 'public/**'
+      - step:
+          name: Deploy to STAGING
+          trigger: manual
+          deployment: staging
+          script:
+            - pipe: atlassian/rsync-deploy:0.6.0
+              variables:
+                USER: $WD_USER
+                SERVER: $WD_SERVER
+                REMOTE_PATH: $WD_REMOTE_PATH
+                LOCAL_PATH: '$BITBUCKET_CLONE_DIR/*'
+                SSH_KEY: $WD_SSH_KEY
+                DELETE_FLAG: 'true'
+                EXTRA_ARGS: '-zrSlh --update --stats --exclude-from=deployment-exclude-list.txt' # Optional.
+    staging:
+      - step:
+          name: Build artifact
+          script:
+            - echo "Deploying to staging environment"
+            - composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-mongodb
+            - php artisan vendor:publish --tag=laravel-assets --ansi
+          #            - php artisan horizon:publish
+          caches:
+            - composer
+            - node
+          artifacts:
+            - 'vendor/**'
+            - 'public/**'
+      - step:
+          name: Deploy to STAGING
+          trigger: manual
+          deployment: staging
+          script:
+            - pipe: atlassian/rsync-deploy:0.6.0
+              variables:
+                USER: $WD_USER
+                SERVER: $WD_SERVER
+                REMOTE_PATH: $WD_REMOTE_PATH
+                LOCAL_PATH: '$BITBUCKET_CLONE_DIR/*'
+                SSH_KEY: $WD_SSH_KEY
+                DELETE_FLAG: 'true'
+                EXTRA_ARGS: '-zrSlh --update --stats --exclude-from=deployment-exclude-list.txt' # Optional.
+  custom:
+    Deploy to STAGING auto deploy:
+      - step:
+          name: Build artifact
+          script:
+            - echo "Deploying to STAGING"
+            - composer install --no-interaction --no-progress --prefer-dist --ignore-platform-req=ext-mongodb
+            - php artisan vendor:publish --tag=laravel-assets --ansi
+          #            - php artisan horizon:publish
+          caches:
+            - composer
+            - node
+          artifacts:
+            - 'vendor/**'
+            - 'public/**'
+      - step:
+          name: Deploy to STAGING automatic deploy
+          deployment: staging
+          script:
+            - pipe: atlassian/rsync-deploy:0.6.0
+              variables:
+                USER: $WD_USER
+                SERVER: $WD_SERVER
+                REMOTE_PATH: $WD_REMOTE_PATH
+                LOCAL_PATH: '$BITBUCKET_CLONE_DIR/*'
+                SSH_KEY: $WD_SSH_KEY
+                DELETE_FLAG: 'false'
+                EXTRA_ARGS: '-zrSlh --update --stats --exclude-from=deployment-exclude-list.txt' # Optional.

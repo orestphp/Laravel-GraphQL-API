@@ -1,0 +1,98 @@
+
+type Mutation
+
+#import sanctum.graphql
+
+"A date string with format `Y-m-d`, e.g. `2011-05-23`."
+scalar Date @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\Date")
+
+
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+"Account of a person who utilizes this application."
+type User {
+    "Unique primary key."
+    id: ID!
+
+    "Non-unique name."
+    name: String!
+
+    "Unique email address."
+    email: String!
+
+    "When the email was verified."
+    email_verified_at: DateTime
+
+    created_at: DateTime!
+    updated_at: DateTime!
+
+    "projects owned by this user"
+    projects: [Project!]! @hasMany
+}
+
+""" Project Model """
+type Project {
+    id: ID!
+    name: String!
+    description: String!
+    lat: String!
+    lon: String!
+    image_path: String!
+    created_at: DateTime!
+    updated_at: DateTime!
+    user: User! @belongsTo(relation: "user")
+}
+
+""" GraphQL File Type """
+scalar Upload
+    @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\Upload")
+
+""" Project Input """
+input ProjectInput {
+    name: String!
+    description: String!
+    lat: Float!
+    long: Float!
+    file: Upload!
+}
+
+""" ProjectUpdate Input """
+input ProjectUpdateInput {
+    id: Int!
+    name: String!
+    description: String!
+    lat: Float!
+    long: Float!
+    file: Upload!
+}
+
+
+
+extend type Mutation {
+    """ Project """
+    createProject(input: ProjectInput! @spread): String @field(resolver: "CreateProject@resolve") @guard
+    updateProject(input: ProjectUpdateInput! @spread): Int! @field(resolver: "UpdateProject@resolve") @guard
+
+    """ Register (extended) """
+    register(input: RegisterInput! @spread): RegisterResponse! @field(resolver: "Register@resolve")
+
+}
+
+""" READ only """
+type Query {
+
+    """ User """
+    user(
+        """ Find a single user """
+        id: ID @eq @rules(apply: ["prohibits:email", "required_without:email"])
+        """ Search by email address."""
+        email: String @eq @rules(apply: ["prohibits:id", "required_without:id", "email"])
+    ): User @find
+    users: [User!]! @paginate(defaultCount: 10)
+
+    """ Project """
+    ownProjects: [Project!] @field(resolver: "OwnProjects@resolve") @guard
+    ownProjectsCount: Int! @field(resolver: "OwnProjects@count") @guard
+
+}
